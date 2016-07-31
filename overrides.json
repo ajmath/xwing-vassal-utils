@@ -1,0 +1,12 @@
+{
+  "ship" : {
+    "yt2400": "yt2400freighter"
+  },
+  "upgrade_type" : {
+    "elitepilottalents" : "ept",
+    "droid" : "amd",
+    "modification" : "mod"
+  },
+  "upgrade" : {},
+  "pilot": {}
+}

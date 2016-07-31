@@ -1,0 +1,12 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    rubyzip (1.2.0)
+    string-similarity (2.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  rubyzip
+  string-similarity
