@@ -4,24 +4,16 @@ require 'zip'
 require 'string/similarity'
 require 'nokogiri'
 require 'json'
+require './zip_utils'
 
 vassal_mod = ARGV[0]
+image_db_path = "#{File.dirname(__FILE__)}/image-db"
 
-def extract_zip(file, destination)
-  FileUtils.mkdir_p(destination)
-
-  Zip::File.open(file) do |zip_file|
-    zip_file.each do |f|
-      fpath = File.join(destination, f.name)
-      zip_file.extract(f, fpath) unless File.exist?(fpath)
-    end
-  end
-end
-
-def load_card_images()
+def load_card_images(image_db_path)
   cards = []
-  for f in Dir.glob("#{File.dirname(__FILE__)}/images/**/*") do
+  for f in Dir.glob("#{image_db_path}/images/**/*") do
     next if !f.match(/.*.jpg$/) and !f.match(/.*.png$/)
+    f = f.gsub(image_db_path, "")
     split = f.split('/')
     card = {}
     card[:type] = split[2]
@@ -53,6 +45,10 @@ def load_vassal_cards(zip_dir)
       card[:faction] = piece.parent.parent["entryName"]
       card[:name] = piece["entryName"]
       card[:path] = piece.content.split(';')[12]
+
+      if card[:ship] == "CR90 Corvette" #HACK
+        card[:ship] = card[:name]
+      end
       vassal_cards << card
     elsif piece.content.include?("Upgrades")
       card[:type] = "upgrades"
@@ -78,7 +74,7 @@ def find_match(cards, name, type, faction = nil, ship = nil)
 end
 
 def normalize_vassal_name(f)
-  f.gsub("_", "").gsub("-", "").gsub(" ", "").gsub("/", "").gsub("'", "").gsub('.', "").gsub('"', "").downcase
+  f.gsub(/[^a-zA-Z0-9]/, "").downcase
 end
 
 def is_excluded(name)
@@ -127,9 +123,15 @@ end
 
 def match_upgrade_card(vassal_upgrade, cards, overrides)
   upgrade_type = match_upgrade_type(vassal_upgrade, cards, overrides)[:match]
+  vassal_name = normalize_vassal_name(vassal_upgrade[:name])
   candidates = cards.select { |c| c[:upgrade_type] == upgrade_type }
-  names = candidates.collect{|c| c[:name] }.uniq
-  match = match(normalize_vassal_name(vassal_upgrade[:name]), names)
+  match = {}
+  if overrides["upgrade"][vassal_name]
+    match = { match: overrides["upgrade"][vassal_name].to_s, score: 100 }
+  else
+    names = candidates.collect{|c| c[:name] }.uniq
+    match = match(vassal_name, names)
+  end
   {
     match: candidates.select { |c| c[:name] == match[:match] }[0],
     score: match[:score]
@@ -140,8 +142,14 @@ def match_pilot_card(vassal_pilot, cards, overrides)
   faction = get_faction(vassal_pilot)
   ship = match_ship(vassal_pilot, faction, cards, overrides)[:match]
   candidates = cards.select { |c| c[:faction] == faction and c[:ship] == ship}
-  names = candidates.collect { |c| c[:name] }.uniq
-  match = match(normalize_vassal_name(vassal_pilot[:name]), names)
+  match = {}
+  vassal_name = normalize_vassal_name(vassal_pilot[:name])
+  if overrides["pilot_name"][vassal_name]
+    match = { match: overrides["pilot_name"][vassal_name].to_s, score: 100 }
+  else
+    names = candidates.collect{|c| c[:name] }.uniq
+    match = match(vassal_name, names)
+  end
   {
     match: candidates.select { |c| c[:name] == match[:match] }[0],
     score: match[:score]
@@ -150,10 +158,13 @@ end
 
 def card_to_s(card)
   if card[:type] == "pilots"
-    "#{card[:faction]}/#{card[:ship]}/#{card[:name]}"
-  else
-    "#{card[:upgrade_type]}/#{card[:name]}"
+    return "#{card[:faction]}/#{card[:ship]}/#{card[:name]}"
   end
+  "#{card[:upgrade_type]}/#{card[:name]}"
+end
+
+def copy_match(image_db_path, zip_dir, vassal_card, match)
+  FileUtils.copy("#{image_db_path}/#{match[:path]}", "#{zip_dir}/images/#{vassal_card[:path]}")
 end
 
 #######################################
@@ -161,9 +172,9 @@ end
 overrides = JSON.parse(File.read("#{File.dirname(__FILE__)}/overrides.json"))
 
 zip_dir = Dir.mktmpdir("#{File.basename(vassal_mod)}.dir")
-extract_zip(vassal_mod, zip_dir)
+ZipFileGenerator.extract_zip(vassal_mod, zip_dir)
 
-cards = load_card_images
+cards = load_card_images(image_db_path)
 vassal_cards = load_vassal_cards(zip_dir)
 
 for vassal_card in vassal_cards do
@@ -175,33 +186,35 @@ for vassal_card in vassal_cards do
   if vassal_card[:type] == "upgrades"
     match = match_upgrade_card(vassal_card, cards, overrides)
   end
+
+
   if match[:score] < 1.0
-    puts "#{match[:score]}: #{card_to_s(vassal_card)} -> #{card_to_s(match[:match])}"
+    puts "Low match found: #{match[:score]}: #{card_to_s(vassal_card)} -> #{card_to_s(match[:match])}"
+    puts "Accept ? (y/n)"
+    response = STDIN.gets.chomp
+    if response == "y"
+      copy_match(image_db_path, zip_dir, vassal_card, match[:match])
+    end
+  end
+
+  if match[:score] == 1.0
+    copy_match(image_db_path, zip_dir, vassal_card, match[:match])
   end
 end
 
+new_vmod_file = vassal_mod.gsub(/\.vmod$/, ".imagefix.vmod")
 
-# for pilot_img in Dir.glob("#{zip_dir}/images/Pilot-*") do
-#   name = normalize_vassal_file_name pilot_img
-#   if is_excluded(name)
-#     next
-#   end
-#
-#   faction = nil
-#   ship = nil
-#   if name.include?("s&v") or name.include?("scum")
-#     faction = "scum"
-#     name = name.gsub("s&v", "").gsub("scum", "")
-#   end
-#   if name.include?("shuttle")
-#     ship = "attackshuttle"
-#     name = name.gsub("shuttle", "")
-#   end
-#
-#   match = find_match(cards, name, "pilots", faction, ship)
-#   if match[:score] < 1.0
-#     puts "#{name} => #{match[:score]} #{match[:match][:path]}"
-#   end
-# end
+if File.exist? new_vmod_file
+  puts "Overrwrite existing mod ? (y/n)"
+  response = STDIN.gets.chomp
+  if response == "y"
+    new_vmod_file = vassal_mod
+  end
+end
 
-puts "zip_dir is #{zip_dir}"
+FileUtils.rm new_vmod_file
+
+zipgen = ZipFileGenerator.new(zip_dir, new_vmod_file)
+zipgen.write()
+
+puts "Wrote new mod to #{new_vmod_file}"

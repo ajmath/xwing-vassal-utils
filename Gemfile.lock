@@ -10,3 +10,6 @@ PLATFORMS
 DEPENDENCIES
   rubyzip
   string-similarity
+
+BUNDLED WITH
+   1.10.4

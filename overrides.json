@@ -1,12 +1,25 @@
 {
   "ship" : {
-    "yt2400": "yt2400freighter"
+    "yt2400": "yt2400freighter",
+    "specialforcestie":"tiesffighter",
+    "tiefighters":"tiefighter"
   },
   "upgrade_type" : {
     "elitepilottalents" : "ept",
     "droid" : "amd",
     "modification" : "mod"
   },
-  "upgrade" : {},
-  "pilot": {}
+  "upgrade" : {
+    "advhomingmissiles" : "advancedhomingmissiles",
+    "adaptabilityflippable" : "adaptability",
+    "r2d2":"r2d2-swx22",
+    "milleniumfalcon" : "millenniumfalcon",
+    "milleniumfalcon2" : "millenniumfalcon2"
+  },
+  "pilot_name" : {
+    "raiderclasscorvettefore" : "raiderclasscorvfore",
+    "raiderclasscorvetteaft" : "raiderclasscorvaft",
+    "blackeightsqpilot" : "blackeightsquadronpilot",
+    "nashtahpuppilot" : "natashapup"
+  }
 }

@@ -1,0 +1,3 @@
+[submodule "image-db"]
+	path = image-db
+	url = git@github.com:ajmath/xwing-card-images.git
