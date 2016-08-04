@@ -11,7 +11,7 @@ require 'nokogiri'
 require './zip_utils'
 
 vassal_mod = ARGV[0]
-image_db_path = "#{File.dirname(__FILE__)}/image-db"
+image_db_path = "#{File.dirname(__FILE__)}/image-db/xwing-card-images-master"
 
 def remote_images_sha()
   github_repo = "ajmath/xwing-card-images"
@@ -265,7 +265,9 @@ if File.exist? new_vmod_file
   end
 end
 
-FileUtils.rm new_vmod_file
+if File.exist? new_vmod_file
+  FileUtils.rm new_vmod_file
+end
 
 zipgen = ZipFileGenerator.new(zip_dir, new_vmod_file)
 zipgen.write()
