@@ -1,13 +1,58 @@
 #!/usr/bin/env ruby
 
+require 'json'
+require "net/http"
+require "uri"
+require 'open-uri'
+
 require 'zip'
 require 'string/similarity'
 require 'nokogiri'
-require 'json'
 require './zip_utils'
 
 vassal_mod = ARGV[0]
 image_db_path = "#{File.dirname(__FILE__)}/image-db"
+
+def remote_images_sha()
+  github_repo = "ajmath/xwing-card-images"
+  github_branch = "master"
+
+  api_base = "https://api.github.com/repos"
+  uri = URI.parse("#{api_base}/#{github_repo}/commits/#{github_branch}")
+  request = Net::HTTP::Get.new(uri.request_uri)
+  request["Accept"] = "application/vnd.github.v3+sha"
+
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  response = http.request(request)
+  return nil if response.code != "200"
+  return response.body
+end
+
+def current_repo_sha()
+  begin
+    open("#{File.dirname(__FILE__)}/image-db/sha").read
+  rescue
+    nil
+  end
+end
+
+def download_repo(sha)
+  github_repo = "ajmath/xwing-card-images"
+  github_branch = "master"
+
+  temp_file = Tempfile.new('images_zip')
+  open(temp_file.path, 'wb') do |file|
+    file << open("https://github.com/#{github_repo}/archive/#{github_branch}.zip").read
+  end
+
+  FileUtils.rmtree("#{File.dirname(__FILE__)}/image-db")
+  FileUtils.mkdir("#{File.dirname(__FILE__)}/image-db")
+  ZipFileGenerator.extract_zip(temp_file.path, "#{File.dirname(__FILE__)}/image-db")
+  open("#{File.dirname(__FILE__)}/image-db/sha", 'wb') do |f|
+    f << sha
+  end
+end
 
 def load_card_images(image_db_path)
   cards = []
@@ -168,6 +213,14 @@ def copy_match(image_db_path, zip_dir, vassal_card, match)
 end
 
 #######################################
+
+remote_sha = remote_images_sha
+if remote_sha != current_repo_sha
+  puts "Downloading new version of xwing-card-images"
+  download_repo(remote_sha)
+else
+  puts "xwing-card-images up to date"
+end
 
 overrides = JSON.parse(File.read("#{File.dirname(__FILE__)}/overrides.json"))
 
