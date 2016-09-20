@@ -242,7 +242,6 @@ for vassal_card in vassal_cards do
     match = match_upgrade_card(vassal_card, cards, overrides)
   end
 
-
   if match[:score] < 1.0
     puts "Low match found: #{match[:score]}: #{card_to_s(vassal_card)} -> #{card_to_s(match[:match])}"
     puts "Accept ? (y/n)"
@@ -252,10 +251,12 @@ for vassal_card in vassal_cards do
     end
   end
 
-  if match[:score] == 1.0
+  if match[:score] >= 1.0
     copy_match(image_db_path, zip_dir, vassal_card, match[:match])
   end
 end
+
+puts "Zip dir at #{zip_dir}"
 
 new_vmod_file = vassal_mod.gsub(/\.vmod$/, ".imagefix.vmod")
 
