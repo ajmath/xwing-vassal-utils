@@ -254,12 +254,10 @@ end
 
 new_vmod_file = vassal_mod.gsub(/\.vmod$/, ".imagefix.vmod")
 
-if File.exist? new_vmod_file
-  puts "Overrwrite existing mod ? (y/n)"
-  response = STDIN.gets.chomp
-  if response == "y"
-    new_vmod_file = vassal_mod
-  end
+puts "Overrwrite existing mod ? (y/n)"
+response = STDIN.gets.chomp
+if response == "y"
+  new_vmod_file = vassal_mod
 end
 
 if File.exist? new_vmod_file
