@@ -172,8 +172,9 @@ def match_upgrade_card(vassal_upgrade, cards, overrides)
   vassal_name = vassal_upgrade[:clean_name]
   candidates = cards.select { |c| c[:upgrade_type] == upgrade_type }
   match = {}
-  if overrides["upgrade"][vassal_name]
-    match = { match: overrides["upgrade"][vassal_name].to_s, score: 100 }
+  upgrade_overrides = overrides["upgrade"][upgrade_type]
+  if upgrade_overrides and upgrade_overrides[vassal_name]
+    match = { match: upgrade_overrides[vassal_name].to_s, score: 100 }
   else
     names = candidates.collect{|c| c[:clean_name] }.uniq
     match = match(vassal_name, names)
