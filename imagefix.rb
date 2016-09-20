@@ -10,15 +10,15 @@ require 'string/similarity'
 require 'nokogiri'
 require './zip_utils'
 
+$github_repo = "ajmath/xwing-card-images"
+$github_branch = "hotr-t70"
+
 vassal_mod = ARGV[0]
-image_db_path = "#{File.dirname(__FILE__)}/image-db/xwing-card-images-master"
+image_db_path = "#{File.dirname(__FILE__)}/image-db/xwing-card-images-#{$github_branch}"
 
 def remote_images_sha()
-  github_repo = "ajmath/xwing-card-images"
-  github_branch = "master"
-
   api_base = "https://api.github.com/repos"
-  uri = URI.parse("#{api_base}/#{github_repo}/commits/#{github_branch}")
+  uri = URI.parse("#{api_base}/#{$github_repo}/commits/#{$github_branch}")
   request = Net::HTTP::Get.new(uri.request_uri)
   request["Accept"] = "application/vnd.github.v3+sha"
 
@@ -38,12 +38,9 @@ def current_repo_sha()
 end
 
 def download_repo(sha)
-  github_repo = "ajmath/xwing-card-images"
-  github_branch = "master"
-
   temp_file = Tempfile.new('images_zip')
   open(temp_file.path, 'wb') do |file|
-    file << open("https://github.com/#{github_repo}/archive/#{github_branch}.zip").read
+    file << open("https://github.com/#{$github_repo}/archive/#{$github_branch}.zip").read
   end
 
   FileUtils.rmtree("#{File.dirname(__FILE__)}/image-db")
