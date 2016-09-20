@@ -68,6 +68,7 @@ def load_card_images(image_db_path)
       card[:upgrade_type] = split[3]
       card[:name] = split[4].gsub(".png", "").gsub(".jpg", "")
     end
+    card[:clean_name] = normalize_name(card[:name])
     cards << card
   end
   cards
@@ -86,6 +87,7 @@ def load_vassal_cards(zip_dir)
       card[:ship] = piece.parent["entryName"]
       card[:faction] = piece.parent.parent["entryName"]
       card[:name] = piece["entryName"]
+      card[:clean_name] = normalize_name(piece["entryName"])
       card[:path] = piece.content.split(';')[12]
 
       if card[:ship] == "CR90 Corvette" #HACK
@@ -96,6 +98,7 @@ def load_vassal_cards(zip_dir)
       card[:type] = "upgrades"
       card[:upgrade_type] = piece.parent["entryName"]
       card[:name] = piece["entryName"]
+      card[:clean_name] = normalize_name(piece["entryName"])
       card[:path] = piece.content.split(';')[16]
       vassal_cards << card
     end
@@ -109,13 +112,13 @@ def find_match(cards, name, type, faction = nil, ship = nil)
   candidates = cards.select { |c| c[:ship] == ship } if ship
   result = { match: nil, score: -1 }
   for candidate in candidates do
-    score = String::Similarity.cosine(candidate[:name], name)
+    score = String::Similarity.cosine(candidate[:clean_name], name)
     result = { match: candidate, score: score } if score > result[:score]
   end
   result
 end
 
-def normalize_vassal_name(f)
+def normalize_name(f)
   f.gsub(/[^a-zA-Z0-9]/, "").downcase
 end
 
@@ -139,6 +142,7 @@ end
 def match(target, candidates)
   result = { match: nil, score: -1 }
   for candidate in candidates
+
     score = String::Similarity.cosine(candidate, target)
     result = { match: candidate, score: score } if score > result[:score]
   end
@@ -146,7 +150,7 @@ def match(target, candidates)
 end
 
 def match_ship(vassal_pilot, faction, cards, overrides)
-  vassal_ship_name = normalize_vassal_name(vassal_pilot[:ship])
+  vassal_ship_name = normalize_name(vassal_pilot[:ship])
   if overrides["ship"][vassal_ship_name]
     return { match: overrides["ship"][vassal_ship_name].to_s, score: 100 }
   end
@@ -155,7 +159,7 @@ def match_ship(vassal_pilot, faction, cards, overrides)
 end
 
 def match_upgrade_type(vassal_upgrade, cards, overrides)
-  vassal_upgrade_type = normalize_vassal_name(vassal_upgrade[:upgrade_type])
+  vassal_upgrade_type = normalize_name(vassal_upgrade[:upgrade_type])
   if overrides["upgrade_type"][vassal_upgrade_type]
     return { match: overrides["upgrade_type"][vassal_upgrade_type].to_s, score: 100 }
   end
@@ -165,17 +169,17 @@ end
 
 def match_upgrade_card(vassal_upgrade, cards, overrides)
   upgrade_type = match_upgrade_type(vassal_upgrade, cards, overrides)[:match]
-  vassal_name = normalize_vassal_name(vassal_upgrade[:name])
+  vassal_name = vassal_upgrade[:clean_name]
   candidates = cards.select { |c| c[:upgrade_type] == upgrade_type }
   match = {}
   if overrides["upgrade"][vassal_name]
     match = { match: overrides["upgrade"][vassal_name].to_s, score: 100 }
   else
-    names = candidates.collect{|c| c[:name] }.uniq
+    names = candidates.collect{|c| c[:clean_name] }.uniq
     match = match(vassal_name, names)
   end
   {
-    match: candidates.select { |c| c[:name] == match[:match] }[0],
+    match: candidates.select { |c| c[:clean_name] == match[:match] }[0],
     score: match[:score]
   }
 end
@@ -185,15 +189,15 @@ def match_pilot_card(vassal_pilot, cards, overrides)
   ship = match_ship(vassal_pilot, faction, cards, overrides)[:match]
   candidates = cards.select { |c| c[:faction] == faction and c[:ship] == ship}
   match = {}
-  vassal_name = normalize_vassal_name(vassal_pilot[:name])
+  vassal_name = vassal_pilot[:clean_name]
   if overrides["pilot_name"][vassal_name]
     match = { match: overrides["pilot_name"][vassal_name].to_s, score: 100 }
   else
-    names = candidates.collect{|c| c[:name] }.uniq
+    names = candidates.collect{|c| c[:clean_name] }.uniq
     match = match(vassal_name, names)
   end
   {
-    match: candidates.select { |c| c[:name] == match[:match] }[0],
+    match: candidates.select { |c| c[:clean_name] == match[:match] }[0],
     score: match[:score]
   }
 end
