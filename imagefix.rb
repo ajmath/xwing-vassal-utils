@@ -11,7 +11,7 @@ require 'nokogiri'
 require './zip_utils'
 
 $github_repo = "ajmath/xwing-card-images"
-$github_branch = "hotr-t70"
+$github_branch = "moar-wave-10"
 
 vassal_mod = ARGV[0]
 image_db_path = "#{File.dirname(__FILE__)}/image-db/xwing-card-images-#{$github_branch}"
