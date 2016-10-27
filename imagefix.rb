@@ -104,7 +104,6 @@ def load_vassal_cards(zip_dir)
       if card[:upgrade_type] == "Conditions"
         next if card[:name].match /.*Token$/
         card[:path] = piece.content.split(';')[28]
-        puts card
       end
 
       vassal_cards << card
