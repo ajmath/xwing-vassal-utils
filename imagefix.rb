@@ -10,8 +10,8 @@ require 'string/similarity'
 require 'nokogiri'
 require './zip_utils'
 
-$github_repo = "ajmath/xwing-card-images"
-$github_branch = "moar-wave-10"
+$github_repo = "voidstate/xwing-card-images"
+$github_branch = "master"
 
 vassal_mod = ARGV[0]
 image_db_path = "#{File.dirname(__FILE__)}/image-db/xwing-card-images-#{$github_branch}"
