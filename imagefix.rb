@@ -102,7 +102,7 @@ def load_vassal_cards(zip_dir)
       card[:path] = piece.content.split(';')[16]
 
       if card[:upgrade_type] == "Conditions"
-        next if card[:name].match /.*Token$/
+        next if card[:name].match(/.*Token$/) || card[:name].match(/Guide: .*/)
         card[:path] = piece.content.split(';')[28]
       end
 
